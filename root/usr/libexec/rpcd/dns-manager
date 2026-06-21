@@ -1,0 +1,120 @@
+#!/bin/sh
+
+. /usr/share/libubox/jshn.sh
+. /lib/functions.sh
+
+RULES_FILE="/etc/dnscrypt-proxy2/forwarding-rules.txt"
+CUSTOM_FILE="/etc/dns-manager/custom-chinalist.txt"
+TOP_FILE="/etc/dns-warmup/top-domains.txt"
+
+case "$1" in
+	list)
+		json_init
+		json_add_object "status"
+		json_close_object
+		json_add_object "get_local_list"
+		json_close_object
+		json_add_object "generate_rules"
+		json_close_object
+		json_add_object "extract_domains"
+		json_close_object
+		json_add_object "warmup"
+		json_close_object
+		json_add_object "restart_dnp"
+		json_close_object
+		json_add_object "restart_agh"
+		json_close_object
+		json_add_object "save_local_list"
+		json_close_object
+		json_dump
+		;;
+
+	call)
+		case "$2" in
+			status)
+				json_init
+				if pgrep -f dnscrypt-proxy >/dev/null 2>&1; then
+					json_add_boolean "dnp" 1
+				else
+					json_add_boolean "dnp" 0
+				fi
+				if pgrep -f AdGuardHome >/dev/null 2>&1; then
+					json_add_boolean "agh" 1
+				else
+					json_add_boolean "agh" 0
+				fi
+				rules=$(wc -l < "$RULES_FILE" 2>/dev/null || echo 0)
+				json_add_int "rules" "$rules"
+				domains=$(wc -l < "$TOP_FILE" 2>/dev/null || echo 0)
+				json_add_int "warmup_domains" "$domains"
+				json_dump
+				;;
+
+			get_local_list)
+				json_init
+				content=$(cat "$CUSTOM_FILE" 2>/dev/null)
+				json_add_string "data" "$content"
+				json_dump
+				;;
+
+			generate_rules)
+				output=$(/usr/share/dns-manager/generate-rules.sh 2>&1)
+				code=$?
+				json_init
+				json_add_int "code" "$code"
+				json_add_string "stdout" "$output"
+				json_dump
+				;;
+
+			extract_domains)
+				json_load "$(cat)"
+				json_get_var count "count"
+				count="${count:-300}"
+				output=$(/usr/bin/dns-extract-top.sh "$count" 2>&1)
+				code=$?
+				json_init
+				json_add_int "code" "$code"
+				json_add_string "stdout" "$output"
+				json_dump
+				;;
+
+			warmup)
+				output=$(/usr/bin/dns-warmup.sh 2>&1)
+				code=$?
+				json_init
+				json_add_int "code" "$code"
+				json_add_string "stdout" "$output"
+				json_dump
+				;;
+
+			restart_dnp)
+				/etc/init.d/dnscrypt-proxy restart 2>&1
+				code=$?
+				json_init
+				json_add_int "code" "$code"
+				json_add_string "stdout" "dnscrypt-proxy restarted"
+				json_dump
+				;;
+
+			restart_agh)
+				/etc/init.d/adguardhome restart 2>&1
+				code=$?
+				json_init
+				json_add_int "code" "$code"
+				json_add_string "stdout" "AdGuardHome restarted"
+				json_dump
+				;;
+
+			save_local_list)
+				json_load "$(cat)"
+				json_get_var data "data"
+				mkdir -p /etc/dns-manager
+				printf '%s' "$data" > "$CUSTOM_FILE"
+				json_init
+				json_add_int "code" 0
+				json_add_string "stdout" "saved"
+				json_dump
+				;;
+		esac
+		;;
+esac

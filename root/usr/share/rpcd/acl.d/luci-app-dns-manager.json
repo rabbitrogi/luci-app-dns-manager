@@ -1,0 +1,17 @@
+{
+	"luci-app-dns-manager": {
+		"description": "Grant access to DNS Manager RPC methods",
+		"read": {
+			"uci": ["dns-manager"],
+			"ubus": {
+				"dns-manager": ["status", "get_local_list"]
+			}
+		},
+		"write": {
+			"uci": ["dns-manager"],
+			"ubus": {
+				"dns-manager": ["generate_rules", "extract_domains", "warmup", "restart_dnp", "restart_agh", "save_local_list"]
+			}
+		}
+	}
+}
