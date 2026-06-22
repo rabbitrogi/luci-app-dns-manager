@@ -1,0 +1,40 @@
+#!/bin/sh
+
+PASS="$1"
+CONF="/etc/adguardhome.yaml"
+
+if [ -z "$PASS" ]; then
+    echo "Usage: adguardhome-chpasswd <new-password>"
+    echo ""
+    echo "Example:"
+    echo "  adguardhome-chpasswd MySecurePass123"
+    exit 1
+fi
+
+[ -f "$CONF" ] || { echo "Error: $CONF not found"; exit 1; }
+
+HASH=""
+
+if command -v mkpasswd >/dev/null 2>&1; then
+    HASH=$(mkpasswd -m bcrypt "$PASS" 2>/dev/null)
+elif command -v htpasswd >/dev/null 2>&1; then
+    HASH=$(htpasswd -nbB -C 10 "" "$PASS" 2>/dev/null | cut -d: -f2)
+elif command -v python3 >/dev/null 2>&1; then
+    HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw(b'$PASS', bcrypt.gensalt(10)).decode())" 2>/dev/null)
+fi
+
+if [ -z "$HASH" ]; then
+    echo "Error: cannot generate bcrypt hash."
+    echo ""
+    echo "Install one of:"
+    echo "  opkg install whois       # provides mkpasswd"
+    echo "  opkg install apache2-utils  # provides htpasswd"
+    echo ""
+    echo "Or use an online bcrypt generator (e.g. bcrypt-generator.com)"
+    echo "and edit $CONF manually."
+    exit 1
+fi
+
+sed -i "s|^  - name:.*|  - name: admin|;s|^    password:.*|    password: $HASH|" "$CONF"
+/etc/init.d/adguardhome restart
+echo "Password changed. AdGuardHome restarted."

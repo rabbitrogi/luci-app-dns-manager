@@ -89,13 +89,25 @@ ignore_system_dns = true
 
 ### AdGuardHome 配置
 
-将上游 DNS 指向 dnscrypt-proxy：
+AdGuardHome 在首次启动时自动配置：
 
-```yaml
-dns:
-  upstream_dns:
-    - 127.0.0.1:9053
+- **Web 界面**：`http://路由器:3000`
+- **默认账户**：`admin` / `admin`（**请立即修改！**）
+- **上游 DNS**：`127.0.0.1:9053`（dnscrypt-proxy）
+- **缓存**：32MB
+- **过滤规则**：AdGuard DNS filter + Anti-AD（中文广告过滤）
+
+修改管理密码：
+
+```bash
+# 安装 bcrypt 工具（一次性）
+opkg install whois
+
+# 设置新密码
+adguardhome-chpasswd 我的密码
 ```
+
+或不安装额外工具，使用在线 bcrypt 生成器手动编辑 `/etc/adguardhome.yaml`。
 
 ## 致谢
 

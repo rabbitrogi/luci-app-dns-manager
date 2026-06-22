@@ -92,13 +92,25 @@ ignore_system_dns = true
 
 ### AdGuardHome
 
-Point AdGuardHome's upstream to dnscrypt-proxy:
+AdGuardHome is auto-configured on first boot with:
 
-```yaml
-dns:
-  upstream_dns:
-    - 127.0.0.1:9053
+- **Web UI**: `http://router:3000`
+- **Default credentials**: `admin` / `admin` (**change immediately!**)
+- **Upstream**: `127.0.0.1:9053` (dnscrypt-proxy)
+- **Cache**: 32MB
+- **Filters**: AdGuard DNS filter + Anti-AD (Chinese)
+
+To change the admin password:
+
+```bash
+# Install a bcrypt tool (one-time)
+opkg install whois
+
+# Set new password
+adguardhome-chpasswd MyNewPassword
 ```
+
+Or without installing extra tools, use any online bcrypt generator and edit `/etc/adguardhome.yaml` manually.
 
 ## Credits
 
