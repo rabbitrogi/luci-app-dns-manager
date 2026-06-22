@@ -1,0 +1,74 @@
+http:
+  address: 0.0.0.0:3000
+  session_ttl: 720h
+users:
+  - name: admin
+    password: $2b$12$XWuBdNgR3hHac2f/kP6bkusweZT.WzYwGKXi343XWJUGT8REgu5Hm
+auth_attempts: 5
+block_auth_min: 15
+language: ""
+theme: auto
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  upstream_dns:
+    - 127.0.0.1:9053
+  bootstrap_dns:
+    - 223.5.5.5
+    - 119.29.29.29
+  upstream_mode: load_balance
+  fastest_timeout: 1s
+  cache_size: 33554432
+  cache_ttl_min: 600
+  cache_ttl_max: 86400
+  cache_optimistic: true
+  aaaa_disabled: true
+  enable_dnssec: false
+  ratelimit: 2000
+  refuse_any: true
+  block_ipv6: false
+  block_unqualified: true
+  block_undelegated: true
+  reject_ttl: 10
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+  upstream_timeout: 10s
+  max_goroutines: 300
+  handle_ddr: true
+  ipset: []
+  use_private_ptr_resolvers: false
+  serve_http3: false
+  use_http3_upstreams: false
+tls:
+  enabled: false
+querylog:
+  enabled: true
+  size_memory: 1000
+  interval: 2160h
+log:
+  enabled: true
+  max_size: 100
+  max_age: 3
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/AdGuardDNSFilter/filters/filter.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: true
+    url: https://anti-ad.net/anti-ad-for-dnsmasq.conf
+    name: Anti-AD (Chinese)
+    id: 2
+filtering:
+  enabled: true
+  update_interval: 24
+  blocked_response_ttl: 10
+clients:
+  runtime_sources: []
+allowed_clients: []
+disallowed_clients: []
+blocked_hosts:
+  - version.bind
+  - id.server
+  - hostname.bind

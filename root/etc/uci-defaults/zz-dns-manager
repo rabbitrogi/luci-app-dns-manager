@@ -1,14 +1,29 @@
 #!/bin/sh
 
-CONF="/etc/dnscrypt-proxy2/dnscrypt-proxy.toml"
-[ -f "$CONF" ] || exit 0
+# Configure dnscrypt-proxy2
+DC_CONF="/etc/dnscrypt-proxy2/dnscrypt-proxy.toml"
+if [ -f "$DC_CONF" ]; then
+    sed -i 's/^127\.0\.0\.53:53/127.0.0.1:9053/' "$DC_CONF"
+    sed -i 's/^# server_names.*/server_names = ["nextdns-ultralow", "nextdns", "dns.sb", "adguard-dns-unfiltered-doh", "cloudflare", "controld-unfiltered", "controld-uncensored", "rethinkdns-doh", "mullvad-doh", "wikimedia", "quad9-doh-ip4-port443-nofilter-pri", "quad9-doh-ip4-port443-nofilter-ecs-pri", "dnscry.pt-taipeh-ipv4", "dnscry.pt-manila-ipv4", "jp.tiar.app-doh", "cs-singapore", "cs-tokyo"]/' "$DC_CONF"
+    sed -i 's/^# lb_strategy.*/lb_strategy = "p5"/' "$DC_CONF"
+    sed -i 's/^cache_size = 4096/cache_size = 16384/' "$DC_CONF"
+    sed -i 's|^# forwarding_rules.*|forwarding_rules = "/etc/dnscrypt-proxy2/forwarding-rules.txt"|' "$DC_CONF"
+    sed -i 's/^bootstrap_resolvers.*/bootstrap_resolvers = ["223.5.5.5:53", "119.29.29.29:53"]/' "$DC_CONF"
+    sed -i 's/^ignore_system_dns.*/ignore_system_dns = true/' "$DC_CONF"
+fi
 
-sed -i 's/^127\.0\.0\.53:53/127.0.0.1:9053/' "$CONF"
-sed -i 's/^# server_names.*/server_names = ["nextdns-ultralow", "nextdns", "dns.sb", "adguard-dns-unfiltered-doh", "cloudflare", "controld-unfiltered", "controld-uncensored", "rethinkdns-doh", "mullvad-doh", "wikimedia", "quad9-doh-ip4-port443-nofilter-pri", "quad9-doh-ip4-port443-nofilter-ecs-pri", "dnscry.pt-taipeh-ipv4", "dnscry.pt-manila-ipv4", "jp.tiar.app-doh", "cs-singapore", "cs-tokyo"]/' "$CONF"
-sed -i 's/^# lb_strategy.*/lb_strategy = "p5"/' "$CONF"
-sed -i 's/^cache_size = 4096/cache_size = 16384/' "$CONF"
-sed -i 's|^# forwarding_rules.*|forwarding_rules = "/etc/dnscrypt-proxy2/forwarding-rules.txt"|' "$CONF"
-sed -i 's/^bootstrap_resolvers.*/bootstrap_resolvers = ["223.5.5.5:53", "119.29.29.29:53"]/' "$CONF"
-sed -i 's/^ignore_system_dns.*/ignore_system_dns = true/' "$CONF"
+# Configure AdGuardHome (if not already configured)
+AGH_CONF="/etc/adguardhome.yaml"
+AGH_TEMPLATE="/etc/dns-manager/adguardhome.yaml.template"
+if [ ! -f "$AGH_CONF" ] && [ -f "$AGH_TEMPLATE" ]; then
+    cp "$AGH_TEMPLATE" "$AGH_CONF"
+    mkdir -p /var/lib/adguardhome/data
+fi
+
+# Free port 53 for AdGuardHome: move dnsmasq to port 54
+if ! uci -q get dhcp.@dnsmasq[0].port >/dev/null; then
+    uci set dhcp.@dnsmasq[0].port=54
+    uci commit dhcp
+fi
 
 exit 0
