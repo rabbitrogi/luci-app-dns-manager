@@ -105,16 +105,17 @@ case "$1" in
 				json_dump
 				;;
 
-			save_local_list)
-				json_load "$(cat)"
-				json_get_var data "data"
-				mkdir -p /etc/dns-manager
-				printf '%s' "$data" > "$CUSTOM_FILE"
-				json_init
-				json_add_int "code" 0
-				json_add_string "stdout" "saved"
-				json_dump
-				;;
+		save_local_list)
+			json_load "$(cat)"
+			json_get_var data "data"
+			mkdir -p /etc/dns-manager
+			printf '%s' "$data" > "$CUSTOM_FILE"
+			/usr/share/dns-manager/generate-rules.sh >/dev/null 2>&1 &
+			json_init
+			json_add_int "code" 0
+			json_add_string "stdout" "saved, rules updating in background"
+			json_dump
+			;;
 		esac
 		;;
 esac

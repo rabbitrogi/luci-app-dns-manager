@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. /lib/functions.sh
+
 # Configure dnscrypt-proxy2
 DC_CONF="/etc/dnscrypt-proxy2/dnscrypt-proxy.toml"
 if [ -f "$DC_CONF" ]; then
@@ -10,6 +12,20 @@ if [ -f "$DC_CONF" ]; then
     sed -i 's|^# forwarding_rules.*|forwarding_rules = "/etc/dnscrypt-proxy2/forwarding-rules.txt"|' "$DC_CONF"
     sed -i 's/^bootstrap_resolvers.*/bootstrap_resolvers = ["223.5.5.5:53", "119.29.29.29:53"]/' "$DC_CONF"
     sed -i 's/^ignore_system_dns.*/ignore_system_dns = true/' "$DC_CONF"
+fi
+
+# Generate forwarding-rules.txt from bundled chinalist (bootstrap safety)
+RULES="/etc/dnscrypt-proxy2/forwarding-rules.txt"
+CHINALIST="/etc/dns-manager/chinalist.txt"
+CUSTOM="/etc/dns-manager/custom-chinalist.txt"
+config_load dns-manager
+config_get CHINA_DNS main china_dns "223.5.5.5:53, 119.29.29.29:53"
+if [ ! -f "$RULES" ] && [ -f "$CHINALIST" ]; then
+    mkdir -p /etc/dnscrypt-proxy2
+    {
+        cat "$CHINALIST"
+        [ -f "$CUSTOM" ] && cat "$CUSTOM"
+    } | sort -u | awk -v dns="$CHINA_DNS" 'NF {print $0 "  " dns}' > "$RULES"
 fi
 
 # Configure AdGuardHome (if not already configured)
