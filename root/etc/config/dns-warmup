@@ -1,0 +1,2 @@
+config dns-warmup 'main'
+	option enabled '1'
