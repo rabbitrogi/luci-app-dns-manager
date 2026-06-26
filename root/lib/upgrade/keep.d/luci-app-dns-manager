@@ -1,0 +1,3 @@
+/etc/dns-manager/custom-chinalist.txt
+/etc/dnscrypt-proxy2/forwarding-rules.txt
+/etc/dns-warmup/top-domains.txt
