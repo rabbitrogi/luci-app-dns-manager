@@ -42,4 +42,11 @@ if ! uci -q get dhcp.@dnsmasq[0].port >/dev/null; then
     uci commit dhcp
 fi
 
+# Seed default warmup domains (replaced by real querylog data later)
+WARMUP_DIR="/etc/dns-warmup"
+if [ ! -f "$WARMUP_DIR/top-domains.txt" ] && [ -f "$WARMUP_DIR/top-domains.default" ]; then
+    mkdir -p "$WARMUP_DIR"
+    cp "$WARMUP_DIR/top-domains.default" "$WARMUP_DIR/top-domains.txt"
+fi
+
 exit 0
