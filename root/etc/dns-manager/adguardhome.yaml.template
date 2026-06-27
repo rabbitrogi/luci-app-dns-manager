@@ -65,10 +65,17 @@ filtering:
   update_interval: 24
   blocked_response_ttl: 10
 clients:
-  runtime_sources: []
+  runtime_sources:
+    whois: true
+    arp: true
+    rdns: true
+    dhcp: true
+    hosts: true
+  persistent: []
 allowed_clients: []
 disallowed_clients: []
 blocked_hosts:
   - version.bind
   - id.server
   - hostname.bind
+schema_version: 24
