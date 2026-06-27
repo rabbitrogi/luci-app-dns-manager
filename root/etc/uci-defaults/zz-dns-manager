@@ -5,7 +5,7 @@
 # Configure dnscrypt-proxy2
 DC_CONF="/etc/dnscrypt-proxy2/dnscrypt-proxy.toml"
 if [ -f "$DC_CONF" ]; then
-    sed -i 's/^127\.0\.0\.53:53/127.0.0.1:9053/' "$DC_CONF"
+    sed -i "s/^listen_addresses = .*/listen_addresses = ['127.0.0.1:9053']/" "$DC_CONF"
     sed -i 's/^# server_names.*/server_names = ["nextdns-ultralow", "nextdns", "dns.sb", "adguard-dns-unfiltered-doh", "cloudflare", "controld-unfiltered", "controld-uncensored", "rethinkdns-doh", "mullvad-doh", "wikimedia", "quad9-doh-ip4-port443-nofilter-pri", "quad9-doh-ip4-port443-nofilter-ecs-pri", "dnscry.pt-taipeh-ipv4", "dnscry.pt-manila-ipv4", "jp.tiar.app-doh", "cs-singapore", "cs-tokyo"]/' "$DC_CONF"
     sed -i 's/^# lb_strategy.*/lb_strategy = "p5"/' "$DC_CONF"
     sed -i 's/^cache_size = 4096/cache_size = 16384/' "$DC_CONF"
