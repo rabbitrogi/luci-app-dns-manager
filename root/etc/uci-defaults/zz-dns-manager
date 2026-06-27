@@ -20,20 +20,26 @@ CHINALIST="/etc/dns-manager/chinalist.txt"
 CUSTOM="/etc/dns-manager/custom-chinalist.txt"
 config_load dns-manager
 config_get CHINA_DNS main china_dns "223.5.5.5:53, 119.29.29.29:53"
+config_get DEFAULT_CUSTOM main custom_domains ""
 if [ ! -f "$RULES" ] && [ -f "$CHINALIST" ]; then
     mkdir -p /etc/dnscrypt-proxy2
+    if [ ! -f "$CUSTOM" ] && [ -n "$DEFAULT_CUSTOM" ]; then
+        echo "$DEFAULT_CUSTOM" | tr ' ' '\n' > "$CUSTOM"
+    fi
     {
         cat "$CHINALIST"
         [ -f "$CUSTOM" ] && cat "$CUSTOM"
     } | sort -u | awk -v dns="$CHINA_DNS" 'NF {print $0 "  " dns}' > "$RULES"
 fi
 
-# Configure AdGuardHome (if not already configured)
+# Configure AdGuardHome (replace if upstream not pointing to dnscrypt-proxy)
 AGH_CONF="/etc/adguardhome.yaml"
 AGH_TEMPLATE="/etc/dns-manager/adguardhome.yaml.template"
-if [ ! -f "$AGH_CONF" ] && [ -f "$AGH_TEMPLATE" ]; then
-    cp "$AGH_TEMPLATE" "$AGH_CONF"
-    mkdir -p /var/lib/adguardhome/data
+if [ -f "$AGH_TEMPLATE" ]; then
+    if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; then
+        cp "$AGH_TEMPLATE" "$AGH_CONF"
+        mkdir -p /var/lib/adguardhome/data
+    fi
 fi
 
 # Free port 53 for AdGuardHome: move dnsmasq to port 54
