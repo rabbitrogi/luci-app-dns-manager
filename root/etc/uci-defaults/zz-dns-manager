@@ -14,7 +14,7 @@ if [ -f "$DC_CONF" ]; then
     sed -i 's/^ignore_system_dns.*/ignore_system_dns = true/' "$DC_CONF"
 fi
 
-# Generate forwarding-rules.txt from bundled chinalist (bootstrap safety)
+# Generate forwarding-rules.txt from bundled chinalist
 RULES="/etc/dnscrypt-proxy2/forwarding-rules.txt"
 CHINALIST="/etc/dns-manager/chinalist.txt"
 CUSTOM="/etc/dns-manager/custom-chinalist.txt"
@@ -32,14 +32,40 @@ if [ ! -f "$RULES" ] && [ -f "$CHINALIST" ]; then
     } | sort -u | awk -v dns="$CHINA_DNS" 'NF {print $0 "  " dns}' > "$RULES"
 fi
 
-# Configure AdGuardHome (replace if upstream not pointing to dnscrypt-proxy)
+# Configure AdGuardHome via API (generates a valid config for the installed version)
 AGH_CONF="/etc/adguardhome.yaml"
-AGH_TEMPLATE="/etc/dns-manager/adguardhome.yaml.template"
-if [ -f "$AGH_TEMPLATE" ]; then
-    if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; then
-        cp "$AGH_TEMPLATE" "$AGH_CONF"
-        mkdir -p /var/lib/adguardhome/data
+AGH_WORK="/var/lib/adguardhome"
+if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; then
+    mkdir -p /tmp/agh-setup/data
+    /usr/bin/AdGuardHome -c /tmp/agh-setup/AdGuardHome.yaml -w /tmp/agh-setup --web-addr 127.0.0.1:3001 &
+    AGH_PID=$!
+    sleep 3
+
+    curl -s -o /dev/null -X POST http://127.0.0.1:3001/control/install/configure \
+        -H "Content-Type: application/json" \
+        -d '{"web":{"ip":"0.0.0.0","port":3000},"dns":{"ip":"0.0.0.0","port":53},"username":"admin","password":"admin123"}'
+    sleep 2
+
+    kill $AGH_PID 2>/dev/null
+    wait $AGH_PID 2>/dev/null
+    sleep 1
+
+    if [ -f /tmp/agh-setup/AdGuardHome.yaml ]; then
+        cp /tmp/agh-setup/AdGuardHome.yaml "$AGH_CONF"
+        sed -i 's|https://dns10.quad9.net/dns-query|127.0.0.1:9053|' "$AGH_CONF"
+        sed -i 's/^    - 9\.9\.9\.10/    - 223.5.5.5/' "$AGH_CONF"
+        sed -i 's/^    - 149\.112\.112\.10/    - 119.29.29.29/' "$AGH_CONF"
+        sed -i '/    - 2620:fe::10/d; /    - 2620:fe::fe:10/d' "$AGH_CONF"
+        sed -i 's/^  cache_size: 4194304/  cache_size: 33554432/' "$AGH_CONF"
+        sed -i 's/^  cache_ttl_min: 0/  cache_ttl_min: 600/' "$AGH_CONF"
+        sed -i 's/^  cache_ttl_max: 0/  cache_ttl_max: 86400/' "$AGH_CONF"
+        sed -i 's/^  cache_optimistic: false/  cache_optimistic: true/' "$AGH_CONF"
+        sed -i 's/^  aaaa_disabled: false/  aaaa_disabled: true/' "$AGH_CONF"
+        sed -i 's/^  ratelimit: 20/  ratelimit: 2000/' "$AGH_CONF"
+        sed -i 's/^  block_unqualified: true/  block_unqualified: true/' "$AGH_CONF"
+        sed -i 's/^  block_undelegated: true/  block_undelegated: true/' "$AGH_CONF"
     fi
+    rm -rf /tmp/agh-setup
 fi
 
 # Free port 53 for AdGuardHome: move dnsmasq to port 54
@@ -48,7 +74,7 @@ if ! uci -q get dhcp.@dnsmasq[0].port >/dev/null; then
     uci commit dhcp
 fi
 
-# Seed default warmup domains (replaced by real querylog data later)
+# Seed default warmup domains
 WARMUP_DIR="/etc/dns-warmup"
 if [ ! -f "$WARMUP_DIR/top-domains.txt" ] && [ -f "$WARMUP_DIR/top-domains.default" ]; then
     mkdir -p "$WARMUP_DIR"
