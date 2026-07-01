@@ -34,23 +34,31 @@ fi
 
 # Configure AdGuardHome via API (generates a valid config for the installed version)
 AGH_CONF="/etc/adguardhome.yaml"
-AGH_WORK="/var/lib/adguardhome"
 if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; then
     mkdir -p /tmp/agh-setup/data
-    /usr/bin/AdGuardHome -c /tmp/agh-setup/AdGuardHome.yaml -w /tmp/agh-setup --web-addr 127.0.0.1:3001 &
+    AGH_SETUP_PORT=39482
+    /usr/bin/AdGuardHome -c /tmp/agh-setup/AdGuardHome.yaml -w /tmp/agh-setup --web-addr 127.0.0.1:$AGH_SETUP_PORT &
     AGH_PID=$!
-    sleep 3
 
-    curl -s -o /dev/null -X POST http://127.0.0.1:3001/control/install/configure \
-        -H "Content-Type: application/json" \
-        -d '{"web":{"ip":"0.0.0.0","port":3000},"dns":{"ip":"0.0.0.0","port":53},"username":"admin","password":"admin123"}'
-    sleep 2
+    agh_ready=0
+    for i in $(seq 1 20); do
+        curl -s -o /dev/null "http://127.0.0.1:$AGH_SETUP_PORT/" && agh_ready=1 && break
+        sleep 0.5
+    done
+
+    if [ "$agh_ready" = "1" ]; then
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://127.0.0.1:$AGH_SETUP_PORT/control/install/configure" \
+            -H "Content-Type: application/json" \
+            -d '{"web":{"ip":"0.0.0.0","port":3000},"dns":{"ip":"0.0.0.0","port":53},"username":"admin","password":"admin123"}')
+    else
+        HTTP_CODE="000"
+    fi
 
     kill $AGH_PID 2>/dev/null
     wait $AGH_PID 2>/dev/null
     sleep 1
 
-    if [ -f /tmp/agh-setup/AdGuardHome.yaml ]; then
+    if [ "$HTTP_CODE" = "200" ] && [ -f /tmp/agh-setup/AdGuardHome.yaml ]; then
         cp /tmp/agh-setup/AdGuardHome.yaml "$AGH_CONF"
         sed -i 's|https://dns10.quad9.net/dns-query|127.0.0.1:9053|' "$AGH_CONF"
         sed -i 's/^    - 9\.9\.9\.10/    - 223.5.5.5/' "$AGH_CONF"
@@ -62,8 +70,8 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
         sed -i 's/^  cache_optimistic: false/  cache_optimistic: true/' "$AGH_CONF"
         sed -i 's/^  aaaa_disabled: false/  aaaa_disabled: true/' "$AGH_CONF"
         sed -i 's/^  ratelimit: 20/  ratelimit: 2000/' "$AGH_CONF"
-        sed -i 's/^  block_unqualified: true/  block_unqualified: true/' "$AGH_CONF"
-        sed -i 's/^  block_undelegated: true/  block_undelegated: true/' "$AGH_CONF"
+    elif [ -f /etc/dns-manager/adguardhome.yaml.template ]; then
+        cp /etc/dns-manager/adguardhome.yaml.template "$AGH_CONF"
     fi
     rm -rf /tmp/agh-setup
 fi
@@ -72,6 +80,7 @@ fi
 if ! uci -q get dhcp.@dnsmasq[0].port >/dev/null; then
     uci set dhcp.@dnsmasq[0].port=54
     uci commit dhcp
+    /etc/init.d/dnsmasq restart
 fi
 
 # Seed default warmup domains
@@ -80,5 +89,8 @@ if [ ! -f "$WARMUP_DIR/top-domains.txt" ] && [ -f "$WARMUP_DIR/top-domains.defau
     mkdir -p "$WARMUP_DIR"
     cp "$WARMUP_DIR/top-domains.default" "$WARMUP_DIR/top-domains.txt"
 fi
+
+# Schedule daily warmup domain list refresh (4:00 AM)
+( crontab -l 2>/dev/null | grep -v 'dns-extract-top'; echo '0 4 * * * /usr/bin/dns-extract-top.sh 300 >/dev/null 2>&1' ) | crontab -
 
 exit 0

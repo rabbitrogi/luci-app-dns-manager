@@ -110,10 +110,11 @@ case "$1" in
 			json_get_var data "data"
 			mkdir -p /etc/dns-manager
 			printf '%s' "$data" > "$CUSTOM_FILE"
-			/usr/share/dns-manager/generate-rules.sh >/dev/null 2>&1 &
+			output=$(/usr/share/dns-manager/generate-rules.sh 2>&1)
+			code=$?
 			json_init
-			json_add_int "code" 0
-			json_add_string "stdout" "saved, rules updating in background"
+			json_add_int "code" "$code"
+			json_add_string "stdout" "$output"
 			json_dump
 			;;
 		esac
