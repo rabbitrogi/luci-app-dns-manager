@@ -6,7 +6,7 @@ PKG_RELEASE:=1
 
 LUCI_TITLE:=LuCI support for DNS Manager (dnscrypt-proxy + AdGuardHome)
 LUCI_DESCRIPTION:=Unified DNS management: dnscrypt-proxy forwarding rules, AdGuardHome cache warmup, China domain list update.
-LUCI_DEPENDS:=+dnscrypt-proxy2 +adguardhome +curl +whois
+LUCI_DEPENDS:=+dnscrypt-proxy2 +adguardhome +curl +whois +bind-dig
 LUCI_PKGARCH:=all
 
 include $(TOPDIR)/feeds/luci/luci.mk
