@@ -1,0 +1,103 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: luci-app-dns-manager\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+msgid "DNS Manager"
+msgstr "DNS 管理"
+
+msgid "dnscrypt-proxy forwarding + AdGuardHome + cache warmup"
+msgstr "dnscrypt-proxy 转发分流 + AdGuardHome 广告过滤 + 缓存预热"
+
+msgid "Basic Settings"
+msgstr "基本设置"
+
+msgid "China DNS"
+msgstr "中国 DNS"
+
+msgid "e.g. 223.5.5.5:53, 119.29.29.29:53"
+msgstr "例如 223.5.5.5:53, 119.29.29.29:53"
+
+msgid "Chinalist URL"
+msgstr "中国域名列表地址"
+
+msgid "Forwarding Rules Path"
+msgstr "转发规则文件路径"
+
+msgid "Top Domains Count"
+msgstr "预热域名数量"
+
+msgid "Warmup Batch Size"
+msgstr "预热并发数"
+
+msgid "Enable Boot Warmup"
+msgstr "启用开机预热"
+
+msgid "Service Status"
+msgstr "服务状态"
+
+msgid "Forwarding Rules"
+msgstr "转发规则"
+
+msgid "rules"
+msgstr "条规则"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "Restart dnscrypt-proxy"
+msgstr "重启 dnscrypt-proxy"
+
+msgid "Restart AdGuardHome"
+msgstr "重启 AdGuardHome"
+
+msgid "Domain List & Cache"
+msgstr "域名列表与缓存"
+
+msgid "Update Domain List"
+msgstr "更新域名列表"
+
+msgid "Extract Top Domains"
+msgstr "提取热门域名"
+
+msgid "Warmup Cache Now"
+msgstr "立即预热缓存"
+
+msgid "AdGuardHome"
+msgstr "AdGuardHome"
+
+msgid "Web UI: "
+msgstr "Web 界面："
+
+msgid "Toggle Embedded View"
+msgstr "切换嵌入视图"
+
+msgid "Custom China Domains"
+msgstr "自定义中国域名"
+
+msgid "One domain per line. Merged with downloaded chinalist on update."
+msgstr "每行一个域名，更新时与下载的中国域名列表合并。"
+
+msgid "Save Custom Domains"
+msgstr "保存自定义域名"
+
+msgid "Saved"
+msgstr "已保存"
+
+msgid "Saving..."
+msgstr "保存中..."
+
+msgid "Running..."
+msgstr "执行中..."
+
+msgid "Please wait..."
+msgstr "请稍候..."
+
+msgid "Done"
+msgstr "完成"
+
+msgid "Error: "
+msgstr "错误："
