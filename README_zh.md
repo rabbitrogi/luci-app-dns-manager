@@ -31,7 +31,7 @@ dnscrypt-proxy (:9053)     ← 加密 DNS + 中国域名分流
 ## 系统要求
 
 - OpenWrt 22.03 或更高版本
-- `dnscrypt-proxy2`、`adguardhome`、`curl`、`dig`
+- `dnscrypt-proxy2`、`adguardhome`、`curl`、`dig`、`whois`
 
 ## 安装
 

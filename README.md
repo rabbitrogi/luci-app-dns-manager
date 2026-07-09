@@ -34,7 +34,8 @@ dnscrypt-proxy (:9053)     ← Encrypted DNS + China domain split routing
 - `dnscrypt-proxy2`
 - `adguardhome`
 - `curl`
-- `dig`
+- `dig` (bind-dig)
+- `whois` (for `adguardhome-chpasswd` bcrypt support)
 
 ## Installation
 
