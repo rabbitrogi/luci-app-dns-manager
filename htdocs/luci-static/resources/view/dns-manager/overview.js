@@ -35,7 +35,7 @@ return view.extend({
 		s.anonymous = true;
 		s.addremove = false;
 		s.option(form.Value, 'china_dns', _('China DNS'),
-			_('e.g. 223.5.5.5:53, 119.29.29.29:53'));
+			_('e.g. 223.5.5.5:53, 119.29.29.29:53. Do not use ISP-assigned DNS (from PPPoE/DHCP): carriers drop non-A type queries (TXT, HTTPS/TYPE65).'));
 		s.option(form.Value, 'chinalist_url', _('Chinalist URL'));
 		s.option(form.Value, 'forwarding_rules', _('Forwarding Rules Path'));
 		s.option(form.Value, 'top_domains_count', _('Top Domains Count'));

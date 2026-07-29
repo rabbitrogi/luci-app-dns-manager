@@ -18,8 +18,8 @@ msgstr "基本设置"
 msgid "China DNS"
 msgstr "中国 DNS"
 
-msgid "e.g. 223.5.5.5:53, 119.29.29.29:53"
-msgstr "例如 223.5.5.5:53, 119.29.29.29:53"
+msgid "e.g. 223.5.5.5:53, 119.29.29.29:53. Do not use ISP-assigned DNS (from PPPoE/DHCP): carriers drop non-A type queries (TXT, HTTPS/TYPE65)."
+msgstr "例如 223.5.5.5:53, 119.29.29.29:53。请勿使用运营商 DNS（PPPoE/DHCP 下发的）：实测联通/移动会丢弃 TXT、HTTPS(TYPE65) 等非 A 类型查询。"
 
 msgid "Chinalist URL"
 msgstr "中国域名列表地址"
