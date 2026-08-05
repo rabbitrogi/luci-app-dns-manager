@@ -1,7 +1,12 @@
 #!/bin/sh
 
 PASS="$1"
-CONF="/etc/adguardhome.yaml"
+
+# 24.10 keeps the config at /etc/adguardhome.yaml (option 'config');
+# 25.12 uses /etc/adguardhome/adguardhome.yaml (option 'config_file').
+CONF=$(uci -q get adguardhome.config.config_file 2>/dev/null)
+[ -z "$CONF" ] && CONF=$(uci -q get adguardhome.config.config 2>/dev/null)
+CONF=${CONF:-/etc/adguardhome.yaml}
 
 if [ -z "$PASS" ]; then
     echo "Usage: adguardhome-chpasswd <new-password>"

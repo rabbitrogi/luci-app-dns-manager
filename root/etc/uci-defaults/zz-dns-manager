@@ -33,7 +33,14 @@ if [ ! -f "$RULES" ] && [ -f "$CHINALIST" ]; then
 fi
 
 # Configure AdGuardHome via API (generates a valid config for the installed version)
-AGH_CONF="/etc/adguardhome.yaml"
+# The yaml path differs across OpenWrt versions: 24.10 reads
+# /etc/adguardhome.yaml (UCI option 'config'), while 25.12 reads
+# /etc/adguardhome/adguardhome.yaml (option 'config_file'; its init
+# refuses configs stored directly in /etc). Use whatever the installed
+# adguardhome package is configured with.
+AGH_CONF=$(uci -q get adguardhome.config.config_file)
+[ -z "$AGH_CONF" ] && AGH_CONF=$(uci -q get adguardhome.config.config)
+AGH_CONF=${AGH_CONF:-/etc/adguardhome.yaml}
 if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; then
     mkdir -p /tmp/agh-setup/data
     AGH_SETUP_PORT=39482
@@ -58,6 +65,16 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
     wait $AGH_PID 2>/dev/null
     sleep 1
 
+    mkdir -p "$(dirname "$AGH_CONF")"
+    # 25.12's adguardhome uci-defaults (alphabetically before this script)
+    # may already have started the service with an empty config; stop it so
+    # it cannot overwrite the config we are about to install.
+    AGH_WAS_RUNNING=""
+    if /etc/init.d/adguardhome running 2>/dev/null; then
+        /etc/init.d/adguardhome stop
+        AGH_WAS_RUNNING=1
+    fi
+
     if [ "$HTTP_CODE" = "200" ] && [ -f /tmp/agh-setup/AdGuardHome.yaml ]; then
         cp /tmp/agh-setup/AdGuardHome.yaml "$AGH_CONF"
         sed -i 's|https://dns10.quad9.net/dns-query|127.0.0.1:9053|' "$AGH_CONF"
@@ -73,6 +90,7 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
     elif [ -f /etc/dns-manager/adguardhome.yaml.template ]; then
         cp /etc/dns-manager/adguardhome.yaml.template "$AGH_CONF"
     fi
+    [ -z "$AGH_WAS_RUNNING" ] || /etc/init.d/adguardhome start
     rm -rf /tmp/agh-setup
 fi
 
