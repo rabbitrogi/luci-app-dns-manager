@@ -77,7 +77,13 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
 
     if [ "$HTTP_CODE" = "200" ] && [ -f /tmp/agh-setup/AdGuardHome.yaml ]; then
         cp /tmp/agh-setup/AdGuardHome.yaml "$AGH_CONF"
-        sed -i 's|https://dns10.quad9.net/dns-query|127.0.0.1:9053|' "$AGH_CONF"
+        # Upstream via TCP, not UDP: dnscrypt frequently returns answers
+        # around 1KB (Chinese CDN CNAME chains) and dnsproxy's UDP read
+        # buffer chokes on them ("dns: buffer size too small" -> SERVFAIL;
+        # AdGuardHome has no udp_buf_size knob — AdguardTeam/AdGuardHome#8054
+        # is still unmerged). dnscrypt-proxy listens on TCP too, so this
+        # sidesteps the issue at negligible cost on loopback.
+        sed -i 's|https://dns10.quad9.net/dns-query|tcp://127.0.0.1:9053|' "$AGH_CONF"
         sed -i 's/^    - 9\.9\.9\.10/    - 223.5.5.5/' "$AGH_CONF"
         sed -i 's/^    - 149\.112\.112\.10/    - 119.29.29.29/' "$AGH_CONF"
         sed -i '/    - 2620:fe::10/d; /    - 2620:fe::fe:10/d' "$AGH_CONF"
