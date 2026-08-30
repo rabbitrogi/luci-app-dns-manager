@@ -42,6 +42,21 @@ AGH_CONF=$(uci -q get adguardhome.config.config_file)
 [ -z "$AGH_CONF" ] && AGH_CONF=$(uci -q get adguardhome.config.config)
 AGH_CONF=${AGH_CONF:-/etc/adguardhome.yaml}
 if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; then
+    mkdir -p "$(dirname "$AGH_CONF")"
+    # Stop the real AdGuardHome FIRST: the install/configure API below
+    # pre-checks that the proposed addresses (0.0.0.0:3000 / 0.0.0.0:53)
+    # can be bound, and fails with 400 "address already in use" while the
+    # real instance holds them. First boot runs before services, but a
+    # manual re-run (or 25.12's own adguardhome uci-defaults, which
+    # alphabetically precedes this script) finds it up — stopping here
+    # covers both, and also prevents it from overwriting the config we
+    # are about to install.
+    AGH_WAS_RUNNING=""
+    if /etc/init.d/adguardhome running 2>/dev/null; then
+        /etc/init.d/adguardhome stop
+        AGH_WAS_RUNNING=1
+    fi
+
     mkdir -p /tmp/agh-setup/data
     AGH_SETUP_PORT=39482
     /usr/bin/AdGuardHome -c /tmp/agh-setup/AdGuardHome.yaml -w /tmp/agh-setup --web-addr 127.0.0.1:$AGH_SETUP_PORT &
@@ -64,16 +79,6 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
     kill $AGH_PID 2>/dev/null
     wait $AGH_PID 2>/dev/null
     sleep 1
-
-    mkdir -p "$(dirname "$AGH_CONF")"
-    # 25.12's adguardhome uci-defaults (alphabetically before this script)
-    # may already have started the service with an empty config; stop it so
-    # it cannot overwrite the config we are about to install.
-    AGH_WAS_RUNNING=""
-    if /etc/init.d/adguardhome running 2>/dev/null; then
-        /etc/init.d/adguardhome stop
-        AGH_WAS_RUNNING=1
-    fi
 
     if [ "$HTTP_CODE" = "200" ] && [ -f /tmp/agh-setup/AdGuardHome.yaml ]; then
         cp /tmp/agh-setup/AdGuardHome.yaml "$AGH_CONF"
