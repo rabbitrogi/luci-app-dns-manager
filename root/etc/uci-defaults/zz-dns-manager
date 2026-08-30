@@ -65,7 +65,8 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
     agh_ready=0
     for i in $(seq 1 20); do
         curl -s -o /dev/null "http://127.0.0.1:$AGH_SETUP_PORT/" && agh_ready=1 && break
-        sleep 0.5
+        # BusyBox sleep rejects fractional arguments ("invalid number")
+        sleep 1
     done
 
     if [ "$agh_ready" = "1" ]; then
