@@ -10,7 +10,7 @@ if [ -f "$DC_CONF" ]; then
     sed -i 's/^# lb_strategy.*/lb_strategy = "p5"/' "$DC_CONF"
     sed -i 's/^cache_size = 4096/cache_size = 16384/' "$DC_CONF"
     sed -i 's|^# forwarding_rules.*|forwarding_rules = "/etc/dnscrypt-proxy2/forwarding-rules.txt"|' "$DC_CONF"
-    sed -i 's/^bootstrap_resolvers.*/bootstrap_resolvers = ["223.5.5.5:53", "119.29.29.29:53"]/' "$DC_CONF"
+    sed -i 's/^bootstrap_resolvers.*/bootstrap_resolvers = ["223.5.5.5:53", "223.6.6.6:53"]/' "$DC_CONF"
     sed -i 's/^ignore_system_dns.*/ignore_system_dns = true/' "$DC_CONF"
 fi
 
@@ -19,7 +19,7 @@ RULES="/etc/dnscrypt-proxy2/forwarding-rules.txt"
 CHINALIST="/etc/dns-manager/chinalist.txt"
 CUSTOM="/etc/dns-manager/custom-chinalist.txt"
 config_load dns-manager
-config_get CHINA_DNS main china_dns "223.5.5.5:53, 119.29.29.29:53"
+config_get CHINA_DNS main china_dns "223.5.5.5:53, 223.6.6.6:53"
 config_get DEFAULT_CUSTOM main custom_domains ""
 if [ ! -f "$RULES" ] && [ -f "$CHINALIST" ]; then
     mkdir -p /etc/dnscrypt-proxy2
@@ -91,7 +91,7 @@ if [ ! -f "$AGH_CONF" ] || ! grep -q "127.0.0.1:9053" "$AGH_CONF" 2>/dev/null; t
         # sidesteps the issue at negligible cost on loopback.
         sed -i 's|https://dns10.quad9.net/dns-query|tcp://127.0.0.1:9053|' "$AGH_CONF"
         sed -i 's/^    - 9\.9\.9\.10/    - 223.5.5.5/' "$AGH_CONF"
-        sed -i 's/^    - 149\.112\.112\.10/    - 119.29.29.29/' "$AGH_CONF"
+        sed -i 's/^    - 149\.112\.112\.10/    - 223.6.6.6/' "$AGH_CONF"
         sed -i '/    - 2620:fe::10/d; /    - 2620:fe::fe:10/d' "$AGH_CONF"
         sed -i 's/^  cache_size: 4194304/  cache_size: 33554432/' "$AGH_CONF"
         sed -i 's/^  cache_ttl_min: 0/  cache_ttl_min: 600/' "$AGH_CONF"

@@ -9,7 +9,7 @@
 var callStatus     = rpc.declare({ object: 'dns-manager', method: 'status' });
 var callGetCustom  = rpc.declare({ object: 'dns-manager', method: 'get_local_list' });
 var callSaveCustom = rpc.declare({ object: 'dns-manager', method: 'save_local_list', params: ['data'] });
-var callGenerate   = rpc.declare({ object: 'dns-manager', method: 'generate_rules' });
+var callGenerate   = rpc.declare({ object: 'dns-manager', method: 'generate_rules', params: ['skip_download'] });
 var callExtract    = rpc.declare({ object: 'dns-manager', method: 'extract_domains', params: ['count'] });
 var callWarmup     = rpc.declare({ object: 'dns-manager', method: 'warmup' });
 var callRestartDnp = rpc.declare({ object: 'dns-manager', method: 'restart_dnp' });
@@ -26,6 +26,11 @@ return view.extend({
 	render: function(data) {
 		var self = this;
 		this.customContent = (data[1] && data[1].data) || '';
+		this._orig = {
+			china_dns: uci.get('dns-manager', 'main', 'china_dns') || '',
+			chinalist_url: uci.get('dns-manager', 'main', 'chinalist_url') || '',
+			forwarding_rules: uci.get('dns-manager', 'main', 'forwarding_rules') || ''
+		};
 		var topCount = uci.get('dns-manager', 'main', 'top_domains_count') || '300';
 
 		var m = new form.Map('dns-manager', _('DNS Manager'),
@@ -35,7 +40,7 @@ return view.extend({
 		s.anonymous = true;
 		s.addremove = false;
 		s.option(form.Value, 'china_dns', _('China DNS'),
-			_('e.g. 223.5.5.5:53, 119.29.29.29:53. Do not use ISP-assigned DNS (from PPPoE/DHCP): carriers drop non-A type queries (TXT, HTTPS/TYPE65).'));
+			_('e.g. 223.5.5.5:53, 223.6.6.6:53. Do not use ISP-assigned DNS (from PPPoE/DHCP): carriers drop non-A type queries (TXT, HTTPS/TYPE65). AdGuardHome reaches dnscrypt over TCP, so forwarding inherits TCP: every server listed must answer TCP/53 (119.29.29.29 TCP is unreachable from many networks - avoid).'));
 		s.option(form.Value, 'chinalist_url', _('Chinalist URL'));
 		s.option(form.Value, 'forwarding_rules', _('Forwarding Rules Path'));
 		s.option(form.Value, 'top_domains_count', _('Top Domains Count'));
@@ -47,14 +52,26 @@ return view.extend({
 			var actionEl = self.buildActions(topCount);
 			var customEl = self.buildCustomDomains(self.customContent);
 
-			poll.add(function() {
-				return callStatus().then(function(res) {
-					self.setDot('dm-dnp', res.dnp);
-					self.setDot('dm-agh', res.agh);
-					var e = document.getElementById('dm-rules');
-					if (e) e.innerHTML = '<b>' + (res.rules || 0) + '</b> ' + _('rules');
-				}).catch(function() {});
-			}, 5);
+		poll.add(function() {
+			return callStatus().then(function(res) {
+				self.setDot('dm-dnp', res.dnp);
+				self.setDot('dm-agh', res.agh);
+				var e = document.getElementById('dm-rules');
+				if (e) e.innerHTML = '<b>' + (res.rules || 0) + '</b> ' + _('rules');
+				var e2 = document.getElementById('dm-rules-dns');
+				if (e2) {
+					var norm = function(s) { return (s || '').replace(/\s+/g, ''); };
+					var applied = res.rules_dns || '';
+					var cur = uci.get('dns-manager', 'main', 'china_dns') || '';
+					e2.innerHTML = '';
+					e2.appendChild(E('span', { 'style': 'font-size:12px;word-break:break-all' },
+						_('Upstream: ') + (applied || '—')));
+					if (applied && cur && norm(applied) !== norm(cur))
+						e2.appendChild(E('div', { 'style': 'color:#f44336;font-size:12px' },
+							_('Differs from saved China DNS - Save & Apply regenerates the rules.')));
+				}
+			}).catch(function() {});
+		}, 5);
 
 			return E('div', {}, [statusEl, actionEl, customEl, mapEl]);
 		});
@@ -117,8 +134,28 @@ return view.extend({
 	},
 
 	handleSaveApply: function(ev, mode) {
+		var self = this;
 		return this.handleSave(ev).then(function() {
 			return ui.changes.apply(mode == '0');
+		}).then(function() {
+			var keys = ['china_dns', 'chinalist_url', 'forwarding_rules'];
+			var changed = keys.some(function(k) {
+				return (uci.get('dns-manager', 'main', k) || '') !== (self._orig[k] || '');
+			});
+			if (!changed)
+				return;
+			ui.addTimeLimitedNotification(null,
+				E('p', {}, _('DNS settings changed - regenerating forwarding rules from cached domain list...')),
+				4000, 'info');
+			return callGenerate(1).then(function(res) {
+				var msg = ((res && res.stdout) || _('Done')).trim().replace(/\n/g, ' | ');
+				ui.addTimeLimitedNotification(null, E('p', {}, msg), 8000,
+					(res && res.code === 0) ? 'info' : 'warning');
+				keys.forEach(function(k) { self._orig[k] = uci.get('dns-manager', 'main', k) || ''; });
+			}).catch(function(err) {
+				ui.addTimeLimitedNotification(null,
+					E('p', {}, _('Rule regeneration failed: ') + (err.message || err)), 8000, 'error');
+			});
 		});
 	},
 
@@ -161,7 +198,8 @@ return view.extend({
 			]),
 			E('div', { 'class': 'dm-c' }, [
 				E('h4', {}, _('Forwarding Rules')),
-				E('p', { 'id': 'dm-rules' }, [E('em', {}, _('Loading...'))])
+				E('p', { 'id': 'dm-rules' }, [E('em', {}, _('Loading...'))]),
+				E('p', { 'id': 'dm-rules-dns', 'style': 'margin:0' }, [])
 			])
 		]));
 		var row = E('div', { 'class': 'dm-b' });

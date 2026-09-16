@@ -15,6 +15,7 @@ case "$1" in
 		json_add_object "get_local_list"
 		json_close_object
 		json_add_object "generate_rules"
+			json_add_string "skip_download"
 		json_close_object
 		json_add_object "extract_domains"
 		json_close_object
@@ -43,8 +44,10 @@ case "$1" in
 				else
 					json_add_boolean "agh" 0
 				fi
-				rules=$(wc -l < "$RULES_FILE" 2>/dev/null || echo 0)
-				json_add_int "rules" "$rules"
+			rules=$(wc -l < "$RULES_FILE" 2>/dev/null || echo 0)
+			json_add_int "rules" "$rules"
+			rules_dns=$(awk 'NF { sub(/^[^ \t]+[ \t]+/, ""); print; exit }' "$RULES_FILE" 2>/dev/null)
+			json_add_string "rules_dns" "$rules_dns"
 				domains=$(wc -l < "$TOP_FILE" 2>/dev/null || echo 0)
 				json_add_int "warmup_domains" "$domains"
 				json_dump
@@ -57,9 +60,15 @@ case "$1" in
 				json_dump
 				;;
 
-			generate_rules)
+		generate_rules)
+			json_load "$(cat)" 2>/dev/null
+			json_get_var skip "skip_download"
+			if [ "$skip" = "1" ]; then
+				output=$(SKIP_DOWNLOAD=1 /usr/share/dns-manager/generate-rules.sh 2>&1)
+			else
 				output=$(/usr/share/dns-manager/generate-rules.sh 2>&1)
-				code=$?
+			fi
+			code=$?
 				json_init
 				json_add_int "code" "$code"
 				json_add_string "stdout" "$output"
